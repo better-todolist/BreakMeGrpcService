@@ -1,4 +1,6 @@
-﻿namespace BreakMeGrpcService.DataObj
+﻿using System.Text.Json.Serialization;
+
+namespace BreakMeGrpcService.DataObj
 {
     public sealed class LocalConfig
     {
@@ -6,7 +8,10 @@
         public long LeaveTimeBound { get; set; }
         public int MuiltTaskNum { get; set; }
 
-        LocalConfig(IList<string> whiteList, long leaveTimeBound, int muiltTaskNum)
+
+
+        [JsonConstructor] public LocalConfig() { }
+         LocalConfig(IList<string> whiteList, long leaveTimeBound, int muiltTaskNum)
         {
             this.WhiteList = whiteList ;
             LeaveTimeBound = leaveTimeBound;
