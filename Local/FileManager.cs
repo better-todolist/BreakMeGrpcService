@@ -45,11 +45,11 @@ namespace BreakMeGrpcService.Local
 
         }
 
-        public static async Task<LocalConfig> GetConfig()
+        public static  LocalConfig GetConfig()
         {
             init();
             using FileStream file = File.OpenRead(ConfigFile);
-            LocalConfig? localConfig = await JsonSerializer.DeserializeAsync<LocalConfig>(file);
+            LocalConfig? localConfig =  JsonSerializer.Deserialize<LocalConfig>(file);
             return localConfig ?? LocalConfig.get_default();
         }
 

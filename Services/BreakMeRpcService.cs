@@ -8,16 +8,17 @@ using Microsoft.AspNetCore.Components.Web.Virtualization;
 
 namespace BreakMeGrpcService.Services
 {
-    public class BreakMeService : BreakMe.BreakMe.BreakMeBase
+    public class BreakMeRpcService : BreakMe.BreakMe.BreakMeBase
     {
-        private readonly ILogger<BreakMeService> _logger;
-        public BreakMeService(ILogger<BreakMeService> logger)
+        private readonly ILogger<BreakMeRpcService> _logger;
+        public BreakMeRpcService(ILogger<BreakMeRpcService> logger)
         {
             _logger = logger;
         }
 
         public override async Task<CreateResp> CreateIntrupt(IntruptInfo request, ServerCallContext context)
         {
+            _logger.Log(LogLevel.Information, $"Create Intrupt");
             IntpData data = new IntpData(
                 Guid.NewGuid(),
                 request.IntpTime,
@@ -39,14 +40,15 @@ namespace BreakMeGrpcService.Services
             }
         }
 
-        public override async Task<Config> FetchConfig(Empty request, ServerCallContext context)
+        public override Task<Config> FetchConfig(Empty request, ServerCallContext context)
         {
-            var cfg = await FileManager.GetConfig();
+            _logger.Log(LogLevel.Information, $"Fetch Config");
+            var cfg = FileManager.GetConfig();
             var ret_cfg = new Config { LeaveTimeBound = cfg.LeaveTimeBound, MuitlTaskNum = cfg.MuiltTaskNum };
 
             ret_cfg.WhiteList.AddRange(cfg.WhiteList);
 
-            return ret_cfg;
+            return Task.FromResult(ret_cfg);
         }
 
         public override async Task<IntpList> FetchAllIntrupt(Empty request, ServerCallContext context)
@@ -69,7 +71,7 @@ namespace BreakMeGrpcService.Services
 
         public override async Task<SetConfigResp> UpdateConfig(SetConfigReq request, ServerCallContext context)
         {
-            var old = await FileManager.GetConfig();
+            var old = FileManager.GetConfig();
 
             if (request.HasLeaveTimeBound)
             {
