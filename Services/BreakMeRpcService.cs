@@ -1,9 +1,7 @@
-using BreakMeGrpcService;
 using Grpc.Core;
 using BreakMe;
 using BreakMeGrpcService.DataObj;
 using BreakMeGrpcService.Local;
-using Google.Protobuf.WellKnownTypes;
 
 
 namespace BreakMeGrpcService.Services
@@ -16,70 +14,98 @@ namespace BreakMeGrpcService.Services
             _logger = logger;
         }
 
-        public override async Task<CreateResp> CreateIntrupt(IntruptInfo request, ServerCallContext context)
+        public override async Task<CreateResp> CreateInterrupt(Interrupt request, ServerCallContext context)
         {
             _logger.Log(LogLevel.Information, $"Create Intrupt");
-            IntpData data = new IntpData(
+            InterruptData data = new(
                 Guid.NewGuid(),
-                request.IntpTime,
-                request.HasIntpProgressPath ? request.IntpProgressPath : null,
-                request.IntpTy,
-                request.HasObserveMode ? request.ObserveMode : ObserveMode.Executable,
-                request.HasIntpMessage ? request.IntpMessage : "Breaking!");
+                request.Time,
+                request.HasProgressPath ? request.ProgressPath : null,
+                request.Ty,
+                request.ObserveMode,
+                request.Message);
 
             var uid = await FileManager.CreateIntp(data);
 
             if (uid == null)
             {
-                return new CreateResp { IsSuccess = false, IntpId = "" };
+                return new CreateResp { IsSuccess = false, Guid = "" };
 
             }
             else
             {
-                return new CreateResp { IsSuccess = true, IntpId = uid.ToString() };
+                return new CreateResp { IsSuccess = true, Guid = uid.ToString() };
             }
         }
 
-        public override Task<Config> FetchConfig(Empty request, ServerCallContext context)
+
+
+        public override async Task<InterruptList> FetchAllInterrupt(BreakMe.Empty request, ServerCallContext context)
         {
-            _logger.Log(LogLevel.Information, $"Fetch Config");
-            var cfg = FileManager.GetConfig();
-            var ret_cfg = new Config { LeaveTimeBound = cfg.LeaveTimeBound, MuitlTaskNum = cfg.MuiltTaskNum };
-
-            ret_cfg.WhiteList.AddRange(cfg.WhiteList);
-
-            return Task.FromResult(ret_cfg);
-        }
-
-        public override async Task<IntpList> FetchAllIntrupt(Empty request, ServerCallContext context)
-        {
-            var ret_list = new IntpList();
+            var ret_list = new InterruptList();
             foreach (var item in await FileManager.GetAllIntpTask())
             {
-                var tmp = new IntruptInfo {
+                var tmp = new Interrupt
+                {
 
-                    IntpProgressPath = item.IntpMessage
-                    , IntpTime = item.IntpTime,
-                    IntpTy = item.InterruptType,
+                    ProgressPath = item.TargetProgress ?? "",
+                    Time = item.IntpTime,
+                    Ty = item.InterruptType,
                     ObserveMode = item.ObserveMode,
-                    IntpMessage = item.IntpMessage,
+                    Message = item.IntpMessage,
                 };
                 ret_list.AllInfo.Add(item.Id.ToString(), tmp);
             }
             return ret_list;
         }
 
-        public override async Task<SetConfigResp> UpdateConfig(SetConfigReq request, ServerCallContext context)
+        public override async Task<OperateResp> UpdateInterrupt(EditedInterrupt request, ServerCallContext context)
         {
-            var old = FileManager.GetConfig();
+            InterruptData data = new(
+                new Guid(request.Guid), request.New.Time, request.New.ProgressPath, request.New.Ty, request.New.ObserveMode, request.New.ProgressPath);
+
+            _ = await FileManager.CreateIntp(data);
+
+            return new OperateResp { IsSuccess = true };
+        }
+
+        public override Task<OperateResp> RemoveInterrupt(InterruptUid request, ServerCallContext context)
+        {
+            FileManager.RemoveIntp(new Guid(request.Guid));
+            return Task.FromResult(new OperateResp { IsSuccess = true });
+        }
+
+        public override async Task<OperateResp> StartInterrupt(InterruptUid request, ServerCallContext context)
+        {
+            var _data = await FileManager.GetIntpInfo(new Guid(request.Guid));
+            // TODO: start the monitor
+
+            return new OperateResp { IsSuccess = false };
+        }
+
+
+        public override async Task<Config> FetchConfig(BreakMe.Empty request, ServerCallContext context)
+        {
+            _logger.Log(LogLevel.Information, $"Fetch Config");
+            var cfg = await FileManager.GetConfig();
+            var ret_cfg = new Config { LeaveTimeBound = cfg.LeaveTimeBound, MultiTaskNum = cfg.MuiltTaskNum };
+
+            ret_cfg.WhiteList.AddRange(cfg.WhiteList);
+
+            return ret_cfg;
+        }
+
+        public override async Task<OperateResp> UpdateConfig(SetConfigReq request, ServerCallContext context)
+        {
+            var old = await FileManager.GetConfig();
 
             if (request.HasLeaveTimeBound)
             {
                 old.LeaveTimeBound = request.LeaveTimeBound;
             }
-            if (request.HasMuitlTaskNum)
+            if (request.HasMultiTaskNum)
             {
-                old.MuiltTaskNum = request.MuitlTaskNum;
+                old.MuiltTaskNum = request.MultiTaskNum;
             }
 
             var wihtelist = request.WhiteList;
@@ -99,7 +125,7 @@ namespace BreakMeGrpcService.Services
 
             FileManager.updateConfig(old);
 
-            return new SetConfigResp { IsSuccess=true };
+            return new OperateResp { IsSuccess = true };
         }
     }
 
