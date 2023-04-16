@@ -12,8 +12,8 @@
     <PackageReference Include="Vanara.PInvoke.User32" Version="3.4.13" />
   </ItemGroup>
 
-	<ItemGroup>
-		<Protobuf Include="Protos\pb.proto" GrpcServices="Service" />
-	</ItemGroup>
+  <ItemGroup>
+	  <Protobuf Include="Protos\pb\pb.proto" GrpcServices="Server" />
+  </ItemGroup>
 
 </Project>
