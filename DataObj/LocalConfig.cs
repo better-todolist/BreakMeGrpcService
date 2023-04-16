@@ -10,7 +10,9 @@ namespace BreakMeGrpcService.DataObj
 
 
 
-        [JsonConstructor] public LocalConfig() { }
+        [JsonConstructor] public LocalConfig() {
+            WhiteList = new List<string>();
+        }
          LocalConfig(IList<string> whiteList, long leaveTimeBound, int muiltTaskNum)
         {
             this.WhiteList = whiteList ;

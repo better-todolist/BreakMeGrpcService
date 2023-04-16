@@ -45,11 +45,11 @@ namespace BreakMeGrpcService.Local
 
         }
 
-        public static  LocalConfig GetConfig()
+        public static async Task<LocalConfig> GetConfig()
         {
             init();
             using FileStream file = File.OpenRead(ConfigFile);
-            LocalConfig? localConfig =  JsonSerializer.Deserialize<LocalConfig>(file);
+            LocalConfig? localConfig = await JsonSerializer.DeserializeAsync<LocalConfig>(file);
             return localConfig ?? LocalConfig.get_default();
         }
 
@@ -60,16 +60,16 @@ namespace BreakMeGrpcService.Local
             await JsonSerializer.SerializeAsync(file, config);
         }
 
-        public static async Task<IList<IntpData>> GetAllIntpTask()
+        public static async Task<IList<InterruptData>> GetAllIntpTask()
         {
             init();
             var list = Directory.GetFiles(DataDir);
-            var task_list = new List<IntpData>();
+            var task_list = new List<InterruptData>();
 
             foreach (var file in list)
             {
                 using FileStream stream = File.OpenRead(file);
-                IntpData? intpData = await JsonSerializer.DeserializeAsync<IntpData>(stream);
+                InterruptData? intpData = await JsonSerializer.DeserializeAsync<InterruptData>(stream);
                 if (intpData != null)
                 {
                     task_list.Add(intpData);
@@ -78,14 +78,14 @@ namespace BreakMeGrpcService.Local
             return task_list;
         }
 
-        public static async Task<IntpData?> GetIntpInfo(Guid id)
+        public static async Task<InterruptData?> GetIntpInfo(Guid id)
         {
             init();
             var path = Path.Join(DataDir, $"{id}.json");
             if (File.Exists(path))
             {
                 using FileStream file = File.OpenRead(path);
-                IntpData? data = await JsonSerializer.DeserializeAsync<IntpData>(file);
+                InterruptData? data = await JsonSerializer.DeserializeAsync<InterruptData>(file);
 
                 return data;
             }
@@ -95,7 +95,7 @@ namespace BreakMeGrpcService.Local
             }
         }
 
-        public static async Task<Guid?> CreateIntp(IntpData data)
+        public static async Task<Guid?> CreateIntp(InterruptData data)
         {
             init();
             var path = Path.Join(DataDir, $"{data.Id}.json");
