@@ -16,7 +16,7 @@ namespace BreakMeGrpcService
             return new WindowsInfo(mode, windows);
         }
 
-        public void StartObserve(IntpData intp)
+        public void StartObserve(InterruptData intp)
         {
             Task.Run(() =>
             {
@@ -96,9 +96,6 @@ namespace BreakMeGrpcService
             };
         }
 
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as WindowsInfo);
-        }
+        public override bool Equals(object obj) => Equals(obj as WindowsInfo);
     }
 }
