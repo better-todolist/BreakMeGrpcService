@@ -1,0 +1,3 @@
+[submodule "Protos/pb"]
+	path = Protos/pb
+	url = git@github.com:better-todolist/proto_files.git
