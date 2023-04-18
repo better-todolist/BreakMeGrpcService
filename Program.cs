@@ -1,7 +1,11 @@
+using BreakMeGrpcService;
 using BreakMeGrpcService.Local;
 using BreakMeGrpcService.Services;
+using Vanara.PInvoke;
 
 FileManager.init();
+//var windows = User32.GetForegroundWindow();
+//var v = new WindowsInfo(BreakMe.ObserveMode.TitleName, windows);
 
 var builder = WebApplication.CreateBuilder(args);
 

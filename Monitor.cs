@@ -18,10 +18,21 @@ namespace BreakMeGrpcService
 
         public void StartObserve(InterruptData intp)
         {
-            Task.Run(() =>
+            Task.Run(async () =>
             {
-
+                await Observe(intp);
             });
+        }
+
+        public async Task Observe(InterruptData data)
+        {
+            var timer = new System.Timers.Timer(500);
+            timer.Elapsed += Timer_Elapsed;
+        }
+
+        private void Timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -32,8 +43,11 @@ namespace BreakMeGrpcService
         public String WindowName { get; set; }
         public uint Tid { get; set; }
         public uint Pid { get; set; }
-
         public String Executable { get; set; }
+
+        public POINT CursorPos { get; set; }
+
+        public bool IsScreenSaverRunning { get; set; }
 
         public WindowsInfo(ObserveMode mode, HWND handleWindow)
         {
@@ -42,11 +56,8 @@ namespace BreakMeGrpcService
 
             var tid = User32.GetWindowThreadProcessId(handleWindow, out uint pid);
 
-            var pHandle = Kernel32.OpenProcess(0x0400, false, pid);
-            if (pHandle == null)
-            {
-                throw new Exception($"cannot load thread info {Kernel32.GetLastError()}");
-            }
+            var pHandle = Kernel32.OpenProcess(0x0400, false, pid) ?? throw new Exception($"cannot load thread info {Kernel32.GetLastError()}");
+
             var filepath = new StringBuilder(Kernel32.MAX_PATH + 1);
             uint size = Kernel32.MAX_PATH + 1;
             var result = Kernel32.QueryFullProcessImageName(pHandle, 0, filepath, ref size);
@@ -56,14 +67,18 @@ namespace BreakMeGrpcService
                 throw new Exception($"cannot get path info {Kernel32.GetLastError()}");
             }
 
+            User32.GetCursorPos(out POINT CursorPos);
+
             Mode = mode;
             WindowName = title.ToString();
             Tid = tid;
             Pid = pid;
             Executable = filepath.ToString();
+            this.CursorPos = CursorPos;
+            IsScreenSaverRunning = false;
         }
 
-        public bool needFliterOut(ISet<String> set)
+        public bool needFliterOut(ISet<string> set)
         {
             return set.Contains(Executable);
         }
