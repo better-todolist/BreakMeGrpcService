@@ -1,5 +1,7 @@
 ﻿using BreakMe;
 using BreakMeGrpcService.DataObj;
+using BreakMeGrpcService.Local;
+using Microsoft.Toolkit.Uwp.Notifications;
 using System.Text;
 using Vanara.PInvoke;
 
@@ -8,7 +10,11 @@ namespace BreakMeGrpcService
 
     public class Monitor
     {
-        public Monitor() { }
+
+        public Monitor()
+        {
+
+        }
 
         private WindowsInfo getNowWindows(ObserveMode mode)
         {
@@ -16,23 +22,119 @@ namespace BreakMeGrpcService
             return new WindowsInfo(mode, windows);
         }
 
-        public void StartObserve(InterruptData intp)
+        public async void StartObserve(InterruptData intp)
         {
-            Task.Run(async () =>
+            var cfg = await FileManager.GetConfig();
+
+            Task task = Task.Run(async () =>
             {
-                await Observe(intp);
+                await Observe(intp, cfg);
             });
         }
 
-        public async Task Observe(InterruptData data)
+        public Task Observe(InterruptData data, LocalConfig cfg)
         {
-            var timer = new System.Timers.Timer(500);
-            timer.Elapsed += Timer_Elapsed;
-        }
+            const int detectionInterval = 500;
+            const int monitorInterval = 5000;
 
-        private void Timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
-        {
-            throw new NotImplementedException();
+
+            const int confirmTime = 30 * 60 * 1000 / detectionInterval;
+            var monitorTime = data.IntpTime * 30 * 60 * 1000 / monitorInterval;
+            var leaveTime = cfg.LeaveTimeBound;
+
+            var taskCounter = new Dictionary<WindowsInfo, int>(cfg.MuiltTaskNum);
+            var counter = 0;
+            var leaveCounter = 0;
+            var monitorMode = false;
+
+            HashSet<WindowsInfo> remainder = new();
+
+            var timer = new System.Timers.Timer(detectionInterval)
+            {
+                AutoReset = true,
+                Enabled = true
+            };
+
+            timer.Elapsed += (sender, e) =>
+            {
+                var info = getNowWindows(data.ObserveMode);
+
+                // 白名单应用，去除
+                if (info.needFliterOut(new HashSet<string>(cfg.WhiteList)))
+                {
+                    return;
+                }
+                // 如果指定了监控目标进程且当前进程与目标监控进程不同，去除
+                if(data.TargetProgress != null && data.TargetProgress != info.Executable) {
+                    return;
+                }
+
+                // 第一阶段，确认监控进程
+                if (!monitorMode)
+                {
+                    // 对应进程计数器加1
+                    if (taskCounter.TryGetValue(info, out var value))
+                    {
+                        taskCounter[info] = value + 1;
+                    }
+                    else
+                    {
+                        taskCounter[info] = 1;
+                    }
+                    counter++;
+                    if (counter >= confirmTime)
+                    {
+                        monitorMode = true;
+                        // 根据多任务数量，确定监控进程
+                        remainder = taskCounter.OrderBy((k) => k.Value).Take(cfg.MuiltTaskNum).Select((v) => v.Key).ToHashSet();
+                        timer.Interval = monitorInterval;
+                    }
+                }
+                else
+                {
+                    // 第二阶段，开始监控到结束
+
+                    // 监控到进入了非专注进程
+                    if (!remainder.Contains(info))
+                    {
+                        leaveCounter += monitorInterval;
+                        return;
+                    }
+                    // 已经离开
+                    if (leaveCounter >= leaveTime)
+                    {
+                        timer.Stop();
+                        timer.Close();
+                    }
+                    // 时间到
+                    if(counter >= monitorTime)
+                    {
+                        switch (data.InterruptType) {
+                            case InterruptType.Notify:
+                                // 发送 toast Notify
+                                new ToastContentBuilder()
+                                .AddText("Break Me!")
+                                .AddText(data.IntpMessage)
+                                .Show();
+
+                                break;
+                            default:
+                                // TODO 启动打断窗口
+                                break;
+                        }
+
+                    }
+
+
+
+
+                }
+
+
+            };
+
+            timer.Start();
+            return Task.CompletedTask;
         }
     }
 
