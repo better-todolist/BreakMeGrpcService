@@ -16,13 +16,13 @@ namespace BreakMeGrpcService
 
         }
 
-        private WindowsInfo getNowWindows(ObserveMode mode)
+        private static WindowsInfo getNowWindows(ObserveMode mode)
         {
             var windows = User32.GetForegroundWindow();
             return new WindowsInfo(mode, windows);
         }
 
-        public async void StartObserve(InterruptData intp)
+        public async static void StartObserve(InterruptData intp)
         {
             var cfg = await FileManager.GetConfig();
 
@@ -32,7 +32,7 @@ namespace BreakMeGrpcService
             });
         }
 
-        public Task Observe(InterruptData data, LocalConfig cfg)
+        public static Task Observe(InterruptData data, LocalConfig cfg)
         {
             const int detectionInterval = 500;
             const int monitorInterval = 5000;

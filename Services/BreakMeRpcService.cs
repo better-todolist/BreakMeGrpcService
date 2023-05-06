@@ -77,9 +77,12 @@ namespace BreakMeGrpcService.Services
 
         public override async Task<OperateResp> StartInterrupt(InterruptUid request, ServerCallContext context)
         {
-            var _data = await FileManager.GetIntpInfo(new Guid(request.Guid));
-            // TODO: start the monitor
-
+            var data = await FileManager.GetIntpInfo(new Guid(request.Guid));
+            if (data != null)
+            {
+                Monitor.StartObserve(data);
+                return new OperateResp { IsSuccess = true };
+            }
             return new OperateResp { IsSuccess = false };
         }
 
