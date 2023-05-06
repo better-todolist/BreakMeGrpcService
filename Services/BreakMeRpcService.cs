@@ -87,7 +87,7 @@ namespace BreakMeGrpcService.Services
         }
 
 
-        public override async Task<Config> FetchConfig(BreakMe.Empty request, ServerCallContext context)
+        public override async Task<Config> FetchConfig(Empty request, ServerCallContext context)
         {
             _logger.Log(LogLevel.Information, $"Fetch Config");
             var cfg = await FileManager.GetConfig();
